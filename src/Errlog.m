@@ -49,6 +49,10 @@ static void onUncaughtException(NSException *exception) {
 
 @implementation Errlog
 
++(void)useToken:(NSString *)token application:(NSString *)name {
+    [Errlog useAccountId:[token substringToIndex:32] secret:[token substringFromIndex:32] application:name];
+}
+
 +(void)useAccountId:(NSString *)accId secret:(NSString *)accSecret application:(NSString *)name {
     me = [[Errlog alloc] initWithAccountId:accId secret:accSecret application:name];
 }
