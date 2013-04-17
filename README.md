@@ -9,10 +9,12 @@ incorporate.
 Installing
 ==========
 
-Drag @src@ folder into your XCode project, check 'sopy files...' and 'create groups...'.
+Drag `src` folder into your XCode project, check 'sopy files...' and 'create groups...'.
 Add initialization to your didFinishLaunch like:
 
 	    [Errlog useAccountId:@"<use-your-id>" secret:@"<your-secret>" application:@"YourApplicationName"];
+
+We encourage using git submodule while beta test to easily update fast changing client code.
 
 Visit http://errorlog.co to obtain your own credentials to start.
 
