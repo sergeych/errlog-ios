@@ -45,6 +45,8 @@ static BOOL logTruncated = NO;
 
 +(void)bufferException:(NSException*)exception;
 
+-(void)fillContext:(NSMutableDictionary*)data;
+
 @end
 
 static void onUncaughtException(NSException *exception) {
@@ -145,11 +147,10 @@ void ELLog(NSString *format, ...) {
         // Catch exceptions
         NSSetUncaughtExceptionHandler(&onUncaughtException);
      
-        NSMutableDictionary *lastError = [[defs objectForKey:@"__errlog_last_error"] mutableCopy];
+        NSString *lastError = [[defs objectForKey:@"__errlog_last_error"] mutableCopy];
         if( lastError ) {
-            NSLog(@"!! Last error: %@", lastError);
-            lastError[@"severity"] = @(kSeverityError);
-            [self report:lastError];
+            NSLog(@"!! Last error: %@", [lastError JSONValue]);
+            [self report:[lastError JSONValue] fillContext:NO];
             [defs removeObjectForKey:@"__errlog_last_error"];
         }
         // Subscribe to events
@@ -160,9 +161,10 @@ void ELLog(NSString *format, ...) {
 }
 
 +(void)bufferException:(NSException *)exception {
-    NSDictionary *data = @{ @"exception_class": NSStringFromClass([exception class]), @"stack": [exception callStackSymbols], @"text": exception.reason };
+    NSMutableDictionary *data = [@{ @"exception_class": NSStringFromClass([exception class]), @"stack": [exception callStackSymbols], @"text": exception.reason, @"severity": @(kSeverityError) } mutableCopy];
+    [me fillContext:data];
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
-    [defs setObject:data forKey:@"__errlog_last_error"];
+    [defs setObject:[data JSONRepresentation] forKey:@"__errlog_last_error"];
     [defs synchronize];
 }
 
@@ -172,7 +174,7 @@ void ELLog(NSString *format, ...) {
     data[@"stack"] = [exception callStackSymbols];
     data[@"text"] = exception.reason;
     data[@"severity"] = @(kSeverityError);
-    [me report:data];    
+    [me report:data fillContext:YES];
 }
 
 -(void)handleNotification:(NSNotification*) notification {
@@ -186,8 +188,7 @@ void ELLog(NSString *format, ...) {
         else {
             NSLog(@"Report last session time: %@", last);
         }
-        [self report: @{ @"action": @"session_started" }];
-        [Errlog trace:@"Started!" data:nil];
+        [self report: @{ @"action": @"session_started" } fillContext:YES];
     }
     else if( [name isEqualToString:UIApplicationWillResignActiveNotification] ) {
         NSTimeInterval sessionTime = -[sessionStartedAt timeIntervalSinceNow];
@@ -237,7 +238,7 @@ void ELLog(NSString *format, ...) {
     NSMutableDictionary * data = _data ? [_data mutableCopy] : [NSMutableDictionary new];
     data[@"severity"] = @(severity);
     data[@"text"] = text;
-    [self report: data];
+    [self report: data fillContext:YES];
 }
 
 +(void)trace:(NSString *)text data:(NSDictionary *)data {
@@ -267,11 +268,7 @@ static NSString* RandomId(NSUInteger length) {
     return [[NSString alloc] initWithBytesNoCopy:buffer length:length encoding:NSASCIIStringEncoding freeWhenDone:YES];
 }
 
--(void)report:(NSDictionary*) _data {
-    
-    NSDictionary *params = @{ @"app_id": accontId };
-    
-    NSMutableDictionary *data = [_data mutableCopy];
+-(void)fillContext:(NSMutableDictionary *)data {
     data[@"platform"] = @"ios";
     data[@"hardware"] = platform;
     data[@"os_version"] = sysVersion;
@@ -280,12 +277,24 @@ static NSString* RandomId(NSUInteger length) {
     data[@"appDisplayName"] = appDisplayName;
     data[@"version"] = majorVersion;
     data[@"build"] = minorVersion;
-    
-    if( logBuffer.count > 0 ) {
-        if( logTruncated )
-            data[@"log_truncated"] = @(YES);
-        data[@"log"] = logBuffer;
+
+    id s = data[@"severity"];
+    if( s && [s intValue] < kSeverityStats ) {
+        if( logBuffer.count > 0 ) {
+            if( logTruncated )
+                data[@"log_truncated"] = @(YES);
+            data[@"log"] = logBuffer;
+        }
     }
+}
+
+-(void)report:(NSDictionary*) _data fillContext:(BOOL)fill{
+    
+    NSDictionary *params = @{ @"app_id": accontId };
+    
+    NSMutableDictionary *data = [_data mutableCopy];
+    if( fill )
+        [self fillContext: data];
     
     if( !data[@"severity"] )
         data[@"severity"] = @(kSeverityStats);
