@@ -15,6 +15,13 @@ Add initialization to your didFinishLaunch like:
 	        [Errlog useToken:@"your token"
 	        	 application:@"AppName"];
 
+	        [Errlog trace:@"my trace" data: nil]; // Se Errlog.h for API
+
+Errlog.h also redefines NSLog to capture your logs, so include it early to see logs in
+your reports.
+
+Errlog installs a handler for uncaught exceptions and does its best to report the fatals
+during the next application start (it is not possible to do it synchronously at this moment)
 
 We encourage using git submodule while beta test to easily update fast changing client code.
 

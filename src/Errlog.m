@@ -27,7 +27,8 @@ enum {
 
 static Errlog* me;
 static NSURL* reportUrl;
-
+static NSMutableArray *logBuffer;
+static BOOL logTruncated = NO;
 
 @interface Errlog() {
     NSString *accontId, *applicationName;
@@ -39,6 +40,7 @@ static NSURL* reportUrl;
     
     NSString *platform;
     NSString *sysVersion;
+    NSString *appDisplayName, *majorVersion, *minorVersion;
 }
 
 +(void)bufferException:(NSException*)exception;
@@ -49,10 +51,28 @@ static void onUncaughtException(NSException *exception) {
     [Errlog bufferException: exception];
 }
 
+void ELLog(NSString *format, ...) {
+    va_list argumentList;
+    va_start(argumentList, format);
+
+    NSString * message = [[NSMutableString alloc] initWithFormat:format
+                                                              arguments:argumentList];
+    
+    NSLogv(message, argumentList); // Originally NSLog is a wrapper around NSLogv.
+    va_end(argumentList);
+
+    if( logBuffer.count > 100 ) {
+        [logBuffer removeObjectAtIndex:0];
+        logTruncated = YES;
+    }
+    [logBuffer addObject: @[@(1), @(time(NULL)), [NSNull null], message]];
+}
+
 @implementation Errlog
 
 +(void)load {
     reportUrl = REPORT_URL;
+    logBuffer = [NSMutableArray new];
 }
 
 +(void)setUrl:(NSURL *)url {
@@ -98,8 +118,6 @@ static void onUncaughtException(NSException *exception) {
         platform = [NSString stringWithUTF8String:machine];
         free(machine);
         
-        NSLog(@"System version: %@", sysVersion);
-        NSLog(@"Platform %@", platform);
         /*
          if ([platform isEqualToString:@"iPhone1,1"])    return @"iPhone 1G";
          if ([platform isEqualToString:@"iPhone1,2"])    return @"iPhone 3G";
@@ -118,6 +136,12 @@ static void onUncaughtException(NSException *exception) {
          if ([platform isEqualToString:@"i386"])         return @"Simulator";
          if ([platform isEqualToString:@"x86_64"])       return @"Simulator";
          */
+        
+        NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+        appDisplayName = [infoDictionary objectForKey:@"CFBundleDisplayName"];
+        majorVersion = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
+        minorVersion = [infoDictionary objectForKey:@"CFBundleVersion"];
+
         // Catch exceptions
         NSSetUncaughtExceptionHandler(&onUncaughtException);
      
@@ -253,6 +277,15 @@ static NSString* RandomId(NSUInteger length) {
     data[@"os_version"] = sysVersion;
     data[@"instance_id"] = instanceId;
     data[@"application"] = applicationName;
+    data[@"appDisplayName"] = appDisplayName;
+    data[@"version"] = majorVersion;
+    data[@"build"] = minorVersion;
+    
+    if( logBuffer.count > 0 ) {
+        if( logTruncated )
+            data[@"log_truncated"] = @(YES);
+        data[@"log"] = logBuffer;
+    }
     
     if( !data[@"severity"] )
         data[@"severity"] = @(kSeverityStats);
@@ -293,18 +326,9 @@ static NSString* RandomId(NSUInteger length) {
     [request setValue:[NSString stringWithFormat:@"%d", [body length]] forHTTPHeaderField:@"Content-Length"];
     [request setHTTPBody:body];
     
-    NSLog(@" ERRLOG >>> ");
-    
-    
     [NSURLConnection sendAsynchronousRequest:request
                                        queue:[NSOperationQueue currentQueue]
                            completionHandler:^(NSURLResponse *response, NSData *rdata, NSError *error) {
-                               if( error ) {
-                                   NSLog(@" <<< Errlog ERROR");
-                               }
-                               else
-                                   NSLog(@" <<< Errlog OK (%d)", [rdata length]);
-                               
                            }];
     
 }
