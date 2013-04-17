@@ -23,9 +23,11 @@ enum {
     kSeverityStats = 1001
 };
 
-#define REPORT_URL ([NSURL URLWithString: @"http://localhost:8080/reports/log"])
+#define REPORT_URL ([NSURL URLWithString: @"http://errorlog.co/reports/log"])
 
 static Errlog* me;
+static NSURL* reportUrl;
+
 
 @interface Errlog() {
     NSString *accontId, *applicationName;
@@ -48,6 +50,14 @@ static void onUncaughtException(NSException *exception) {
 }
 
 @implementation Errlog
+
++(void)load {
+    reportUrl = REPORT_URL;
+}
+
++(void)setUrl:(NSURL *)url {
+    reportUrl = url;
+}
 
 +(void)useToken:(NSString *)token application:(NSString *)name {
     [Errlog useAccountId:[token substringToIndex:32] secret:[token substringFromIndex:32] application:name];
@@ -247,7 +257,7 @@ static NSString* RandomId(NSUInteger length) {
     if( !data[@"severity"] )
         data[@"severity"] = @(kSeverityStats);
     
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:REPORT_URL
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:reportUrl
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                        timeoutInterval:54.0];
     

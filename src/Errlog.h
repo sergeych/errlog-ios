@@ -15,14 +15,19 @@
  *
  * Call it in your appdelegate.
  */
-+(void)useAccountId:(NSString*) accId secret:(NSString*)accSecret application:(NSString*)name;
 +(void)useToken:(NSString*)token application:(NSString*)name;
+
+/// itinitalize using account info. deprecated
++(void)useAccountId:(NSString*) accId secret:(NSString*)accSecret application:(NSString*)name;
+
 
 +(void)trace:(NSString*)text data:(NSDictionary*)data;
 +(void)warning:(NSString*)text data:(NSDictionary*)data;
 +(void)error:(NSString*)text data:(NSDictionary*)data;
 +(void)exception:(NSException*)exception data:(NSDictionary*)data;
 
+
++(void) setUrl:(NSURL*)url;
 +(Errlog*) instance;
 
 -(id)initWithAccountId:(NSString*)accId secret:(NSString*)accSecret application:(NSString*)name;
