@@ -18,7 +18,8 @@ void ELLog(NSString *format, ...);
 /** 
  * Initialize the Errlog engine.
  *
- * Call it in your appdelegate.
+ * Call it eary in your appdelegate. Note that including errlog.h will redefine NSLog
+ * so log will be collected and reported.
  */
 +(void)useToken:(NSString*)token application:(NSString*)name;
 
@@ -26,6 +27,11 @@ void ELLog(NSString *format, ...);
 +(void)warning:(NSString*)text data:(NSDictionary*)data;
 +(void)error:(NSString*)text data:(NSDictionary*)data;
 +(void)exception:(NSException*)exception data:(NSDictionary*)data;
+
+/**
+ * Report an event with a given name and optional dictionary with data, can be null.
+ */
++(void)event:(NSString*)name data:(NSDictionary*)data;
 
 // Following are internal methods that are not intended for direct use
 

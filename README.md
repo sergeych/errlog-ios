@@ -17,6 +17,9 @@ Add initialization to your didFinishLaunch like:
 
 	        [Errlog trace:@"my trace" data: nil]; // Se Errlog.h for API
 
+	        // Report an event for behavoidr logging:
+	        [Errlog event:@"Logged in" data: nil];
+
 Errlog.h also redefines NSLog to capture your logs, so include it early to see logs in
 your reports.
 

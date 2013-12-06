@@ -177,6 +177,13 @@ void ELLog(NSString *format, ...) {
     [me report:data fillContext:YES];
 }
 
++(void)event:(id)name data:(NSDictionary *)_data {
+    NSMutableDictionary *data = _data ? [_data mutableCopy] : [NSMutableDictionary new];
+    data[@"severity"] = @(kSeverityStats);
+    data[@"event_name"] = name;
+    [me report:data fillContext:YES];
+}
+
 -(void)handleNotification:(NSNotification*) notification {
     NSString *name = notification.name;
     if( [name isEqualToString:UIApplicationDidBecomeActiveNotification] ) {
@@ -338,6 +345,7 @@ static NSString* RandomId(NSUInteger length) {
     [NSURLConnection sendAsynchronousRequest:request
                                        queue:[NSOperationQueue currentQueue]
                            completionHandler:^(NSURLResponse *response, NSData *rdata, NSError *error) {
+//                               NSLog(@"Errlog request answered: %@", response);
                            }];
     
 }
